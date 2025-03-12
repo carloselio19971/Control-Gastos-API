@@ -1,6 +1,7 @@
-import {v4 as uuidv4} from 'uuid'
 
+import {v4 as uuidv4} from 'uuid'
 import { DraftExpense, Expense } from "../Types"
+import { act } from 'react'
 
 export type BudgetActions =
         {type:'add-budget', payload:{budget:number}} |
@@ -8,9 +9,20 @@ export type BudgetActions =
         {type:'close-modal'} |
         {type:'add-expense', payload:{expense:DraftExpense}} |
         {type:'remove-expense', payload:{id:Expense['id']}} |
-        {type:'get-expense-by-id', payload:{id:Expense['id']}}
+        {type:'get-expense-by-id', payload:{id:Expense['id']}} |
+        {type:'update-expense', payload:{expense:Expense}} |
+        {type:'reset-app'}
             
 
+const initialBudget = () : number =>{
+    const localStorageBudget=localStorage.getItem('budget')
+    return localStorageBudget ? +localStorageBudget: 0
+}
+
+const localStorageExpenses=(): Expense[] =>{
+        const localStoragaExpenses= localStorage.getItem('expenses')
+        return localStoragaExpenses ? JSON.parse(localStoragaExpenses):[]
+}
 
 
 export type BudgetState = {
@@ -21,9 +33,9 @@ export type BudgetState = {
 }
 
 export const initialState: BudgetState ={
-        budget:0,
+        budget:initialBudget(),
         modal:false,
-        expenses:[],
+        expenses:localStorageExpenses(),
         editingId:''
 }
 
@@ -53,7 +65,9 @@ export const  budgetReducer = (
     if(action.type==='close-modal'){
         return {
             ...state,
-            modal:false
+            modal:false,
+            editingId:''
+
         }
     }
 
@@ -79,6 +93,22 @@ export const  budgetReducer = (
             ...state,
             editingId:action.payload.id,
             modal:true
+        }
+    }
+    if(action.type==='update-expense'){
+        return {
+            ...state,
+            expenses: state.expenses.map(expense => expense.id=== action.payload.expense.id ? action.payload.expense: expense),
+            modal:false,
+            editingId:''
+        }
+    }
+    if(action.type==='reset-app'){
+        return {
+            ...state,
+            budget:0,
+            expenses:[]
+    
         }
     }
     

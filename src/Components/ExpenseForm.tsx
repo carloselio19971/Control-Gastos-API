@@ -10,6 +10,7 @@ import { useBudget } from "../Hooks/useBudget";
 
 export const ExpenseForm = () => {
 
+
   const [expense, setExpense] = useState<DraftExpense>({
         amount:0,
         expenseName:'',
@@ -18,13 +19,15 @@ export const ExpenseForm = () => {
   })
 
   const [error, setError] = useState('');
-  const { dispatch , state} = useBudget();
+  const [previusAmount, setPreviusAmount]=useState(0);
+  const { dispatch , state, remainingBudget} = useBudget();
 
 
   useEffect(()=>{
       if(state.editingId){
             const editingExpenses= state.expenses.filter(currentExpense => currentExpense.id === state.editingId)[0]
             setExpense(editingExpenses);
+            setPreviusAmount(editingExpenses.amount)
       }
   },[state.editingId]);
 
@@ -42,9 +45,22 @@ export const ExpenseForm = () => {
           setError('Todos los campos son Obligatorios');
             return;
       }
-      //Agregar un nuevo Gastos
-      dispatch({type:'add-expense',payload:{expense}
-      })
+      //Validar que no me pase del limite
+      if((expense.amount-previusAmount)>remainingBudget){
+            setError('Esa Gasto se sale del presupuesto');
+              return;
+        }
+
+
+      //Agregar o actualizar el gasto
+      if(state.editingId){
+          dispatch({type:'update-expense', payload:{expense:{id:state.editingId, ...expense}}})        
+      }
+      else {
+            dispatch({type:'add-expense',payload:{expense}})
+      }
+
+  
 
       //Reiniciar el State
       setExpense({
@@ -52,9 +68,9 @@ export const ExpenseForm = () => {
             expenseName:'',
             category:'',
             date: new Date() 
-      }
-      )
+      })
 
+      setPreviusAmount(0)
 
 
   }
@@ -75,7 +91,7 @@ export const ExpenseForm = () => {
         <form className="space-y-5" onSubmit={handleSubmit}>
             <legend
                     className="uppercase text-center text-2xl font-black border-b-4 border-blue-500 py-2"
-            > Nuevo Gasto</legend>
+            > {state.editingId ? 'Guardar Cambios': 'Nuevo Gasto'}</legend>
             {error &&  <ErrorMessage>{error}</ErrorMessage>}
 
              {/* Campo para el nombre del Gasto*/}
@@ -153,7 +169,7 @@ export const ExpenseForm = () => {
             <input 
                 type="submit"
                 className="bg-blue-600 cursor-pointer w-full p-2 text-white uppercase font-bold rounded-lg"
-                value={'Registrar Gasto'}
+                value={state.editingId ? 'Guardar Cambios': 'Registrar Gasto'}
                       
             />
         </form>
